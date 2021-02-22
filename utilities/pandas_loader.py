@@ -6,16 +6,13 @@ import os.path as osp
 
 def load_csv(working_dir,csv_path):
 
-    cache_folder_name = "cache/"
+    cache_folder_name = "cache"
     cache_folder_path = osp.join(working_dir,cache_folder_name)
     os.makedirs(cache_folder_path,exist_ok=True)
 
     pickle_file_name = os.path.basename(csv_path) + ".pkl"
-
     csv_folder = os.path.dirname(csv_path)
-
-    csv_folder = csv_folder[1:]
-
+    # csv_folder = csv_folder[1:] #TODO dont know why.
     cache_pickle_folder = osp.join(cache_folder_path,csv_folder)
 
     os.makedirs(cache_pickle_folder,exist_ok=True)
@@ -23,7 +20,8 @@ def load_csv(working_dir,csv_path):
     pickle_path = osp.join(cache_pickle_folder,pickle_file_name)
 
 
-
+    print(pickle_path)
+    print(csv_path)
     if not os.path.isfile(pickle_path):
         print("pkl not found: {}".format(pickle_path))
         dataframe = pd.read_csv(csv_path)

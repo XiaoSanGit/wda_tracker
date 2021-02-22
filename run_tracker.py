@@ -246,7 +246,7 @@ class Run_tracker:
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str)
+    parser.add_argument("--config", type=str,default="configs/tracker_configs/frcnn50_new_abd_test.py")
 
     return parser.parse_args()
 

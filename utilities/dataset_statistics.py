@@ -164,6 +164,7 @@ def get_overlapping_areas(dataset_path,working_dirs,cam_count,person_identifier=
         with open(pickle_path, "rb") as pickle_file:
             return pickle.load(pickle_file)
     print("Calculating cam overlapping area hulls.")
+    # TODO Cannot be down locally Returns the points of persons that occur at the same time in at least two cams.
     cam_id_to_cam_id_to_points = get_cam_id_to_cam_id_to_points(dataset_path,working_dirs,cam_count,person_identifier)
 
     cam_ids_to_cam_id_to_hull = cam_points_to_convex_hull(cam_id_to_cam_id_to_points)

@@ -6,9 +6,6 @@ joblib==0.14.1
 kiwisolver==1.1.0
 lapsolver==1.1.0
 matplotlib==3.2.1
-mkl-fft==1.0.15
-mkl-random==1.1.0
-mkl-service==2.3.0
 mmcv==0.4.2
 numpy==1.18.1
 olefile==0.46
@@ -26,7 +23,5 @@ Shapely==1.7.0
 six==1.14.0
 sklearn==0.0
 terminaltables==3.1.0
-torch==1.4.0
-torchvision==0.5.0
 tqdm==4.44.1
 yacs==0.1.6

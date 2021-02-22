@@ -91,7 +91,7 @@ class Run_multi_cam_clustering:
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str)
+    parser.add_argument("--config", type=str,default="configs/clustering_configs/mta_es_abd_non_clean.py")
 
     return parser.parse_args()
 

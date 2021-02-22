@@ -230,7 +230,7 @@ def load_ground_truth_dataframes(dataset_folder,working_dir,cam_ids):
     # load ground truth data for each cam
     ground_truth_dataframes = []
     for cam_id in cam_ids:
-        cam_coords_path = osp.join(dataset_folder, "cam_{}/".format(cam_id), "coords_fib_cam_{}.csv".format(cam_id))
+        cam_coords_path = osp.join(dataset_folder, "cam_{}\\".format(cam_id), "coords_fib_cam_{}.csv".format(cam_id))
 
         cam_coords = pandas_loader.load_csv(working_dir, cam_coords_path)
 

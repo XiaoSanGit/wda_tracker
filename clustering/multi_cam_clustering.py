@@ -113,7 +113,7 @@ def pickle_all_reid_features(work_dirs
         track_results_df = track_results_one_cam["track_results"]
         cam_id = track_results_one_cam["cam_id"]
         cam_video_path = os.path.join(dataset_folder,"cam_{}".format(cam_id),"cam_{}.mp4".format(cam_id))
-        video_capture = cv2.VideoCapture(cam_video_path)
+        video_capture = cv2.VideoCapture(cam_video_path) # TODO why here take the original video?
 
 
 
@@ -134,17 +134,17 @@ def pickle_all_reid_features(work_dirs
 
             if not os.path.exists(feature_pickle_filename):
                 if len(feature_extraction) == 0:
-                    feature_extraction.append(Feature_extraction(mc_cfg))
+                    feature_extraction.append(Feature_extraction(mc_cfg)) # use abd_extractor in example
 
                 video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_no_cam)
 
-                ret, frame = video_capture.read()
+                ret, frame = video_capture.read()  # TODO here read certain frame.
 
                 if not ret:
                     raise Exception("Unable to read video frame.")
 
 
-
+                # normal CV feature extractor
                 features_frame = feature_extraction[0].get_features(xyxy_bboxes, frame)
                 person_id_to_feature = {}
                 for person_id, feature in zip(one_frame["person_id"], features_frame):
@@ -220,7 +220,7 @@ class Multi_cam_clustering:
     def get_all_tracks_with_feature_mean(self,track_results_folder,dataset_type):
 
         get_person_id_tracks_pickle_path = self.get_person_id_tracks_pickle_path(self.config_basename,dataset_type)
-
+        # [personID,camID,track,feature_mean(mean all person feature per cam per frame)]
         if os.path.exists(get_person_id_tracks_pickle_path):
             print("Found pickled person_id_tracks")
             print(get_person_id_tracks_pickle_path)
@@ -234,7 +234,7 @@ class Multi_cam_clustering:
 
         for track_dict in tqdm(self.person_id_tracks):
 
-
+            # TODO this can be done locally. calculate mean of feature in all frames per personID per cam
             feature_mean = self.calculate_track_feature_mean(track=track_dict
                                                              ,dataset_type=dataset_type)
             track_dict["feature_mean"] = feature_mean
@@ -817,7 +817,7 @@ class Multi_cam_clustering:
             track_results_folder = self.test_track_results_folder
 
         self.get_all_tracks_with_feature_mean(track_results_folder,dataset_type)
-        self.initialize_overlapping_area_tester()
+        self.initialize_overlapping_area_tester() # TODO calculate the overlap. Use all detection info seems
         self.initialize_cam_homographies()
         self.initialize_maximum_link_predict_distance(track_results_folder=track_results_folder
                                                       ,dataset_type=dataset_type)
@@ -1077,7 +1077,7 @@ class Multi_cam_clustering:
 
 
     def cluster_from_weights(self,best_weights_path,default_weights,dataset_type):
-
+        # dataset_folder
         if dataset_type == "test":
             dataset_folder = self.test_dataset_folder
         elif dataset_type == "train":
@@ -1115,7 +1115,7 @@ class Multi_cam_clustering:
 
         self.logger.info("Starting single cam evaluation chunk_{}.".format(self.chunk_id))
 
-
+        # following is the eval. So do not change 
         single_cam_eval_summary  = eval_single_cam_multiple_cams(dataset_base=dataset_folder
                                                                 ,track_results_folder=clustering_results["tracking_results"]
                                                                 ,cam_ids=list(range(self.cam_count))
@@ -1335,7 +1335,8 @@ def splitted_clustering_from_weights(test_track_results_folder
     # As pickle_reid_features will be called in a loop.
     # In this list the initialized extractor will be stored
     feature_extraction = []
-
+    # chunk_id_to_gt_chunks: list of dataframe in data/mta
+    # chunk_id_to_tr_chunks: list of dataframe in workdir/tracker/tracker_results
     pool = NonDeamonicPool(processes=11)
     eval_results = []
     for chunk_id, test_chunk_gt in chunk_id_to_gt_chunks.items():
