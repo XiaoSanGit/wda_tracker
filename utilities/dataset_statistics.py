@@ -459,7 +459,7 @@ def get_cam_homographies(dataset_path,working_dirs,cam_count,person_identifier="
         with open(pickle_path, "rb") as pickle_file:
             return pickle.load(pickle_file)
     print("Calculating cam homographies.")
-    cam_id_to_cam_id_to_points = get_cam_id_to_cam_id_to_points(dataset_path
+    cam_id_to_cam_id_to_points = get_cam_id_to_cam_id_to_points(dataset_path  # TODO this func can use results from overlap func
                                                                 , working_dirs
                                                                 , cam_count
                                                                 , person_identifier

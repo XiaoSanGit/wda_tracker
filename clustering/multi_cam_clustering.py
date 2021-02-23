@@ -125,7 +125,7 @@ def pickle_all_reid_features(work_dirs
             xyxy_bboxes = zip(one_frame["xtl"], one_frame["ytl"], one_frame["xbr"], one_frame["ybr"])
 
 
-
+            # pickled_appearance_features
             feature_pickle_filename = get_feature_pickle_path(work_dirs=work_dirs
                                                               , frame_no_cam=frame_no_cam
                                                               , cam_id=cam_id
@@ -816,10 +816,10 @@ class Multi_cam_clustering:
         elif dataset_type == "test":
             track_results_folder = self.test_track_results_folder
 
-        self.get_all_tracks_with_feature_mean(track_results_folder,dataset_type)
+        self.get_all_tracks_with_feature_mean(track_results_folder,dataset_type) #TODO calculate mean of feature in all frames per personID per cam
         self.initialize_overlapping_area_tester() # TODO calculate the overlap. Use all detection info seems
-        self.initialize_cam_homographies()
-        self.initialize_maximum_link_predict_distance(track_results_folder=track_results_folder
+        self.initialize_cam_homographies() # TODO calculate the overlap. Use all detection info seems. Share time-suming part with overlapping
+        self.initialize_maximum_link_predict_distance(track_results_folder=track_results_folder # TODO use get_person_id_to_track() as well
                                                       ,dataset_type=dataset_type)
 
 
@@ -880,7 +880,7 @@ class Multi_cam_clustering:
         save_results_folder,tracking_results = self.save_track_all_cams(track_clusters=cluster_tracks
                                                                  ,config_basename=self.config_basename
                                                                  ,dataset_type=dataset_type)
-
+        # modify the tracking_unclustered_no. and person id
         return { "track_results_path" : save_results_folder
                 , "track_count" : len(current_clusters)
                 , "tracking_results" : tracking_results}
@@ -910,7 +910,7 @@ class Multi_cam_clustering:
 
 
         if not self.are_tracks_cam_id_frame_disjunct(candidate_track, partner_track):
-            result_distances["are_tracks_cam_id_frame_disjunct"] = np.Inf
+            result_distances["are_tracks_cam_id_frame_disjunct"] = np.Inf # means there is a intersection (frame_id, camera_id)
 
         if not self.are_tracks_frame_overlap_disjunct(candidate_track, partner_track):
             result_distances["are_tracks_frame_overlap_disjunct"] = np.Inf
@@ -1107,6 +1107,7 @@ class Multi_cam_clustering:
 
         self.logger.info(get_elapsed_time_and_msg(start_time,str(best_weights)))
         self.logger.info("Starting multi cam clustering chunk_{}.".format(self.chunk_id))
+        # TODO core core code
         clustering_results = self.cluster_tracks_via_hierarchical(dist_name_to_distance_weights=best_weights
                                                             ,threshold=1
                                                             ,distance_cache_active=True
@@ -1115,7 +1116,7 @@ class Multi_cam_clustering:
 
         self.logger.info("Starting single cam evaluation chunk_{}.".format(self.chunk_id))
 
-        # following is the eval. So do not change 
+        # following is the eval. So do not change
         single_cam_eval_summary  = eval_single_cam_multiple_cams(dataset_base=dataset_folder
                                                                 ,track_results_folder=clustering_results["tracking_results"]
                                                                 ,cam_ids=list(range(self.cam_count))
@@ -1170,7 +1171,7 @@ def find_clustering_weights(test_track_results_folder
                                                                , until_frame_no=take_frames_per_cam)
 
 
-
+    # pickled_appearance_features
     pickle_all_reid_features(work_dirs=work_dirs
                              , mc_cfg=mc_cfg
                              , track_results_folder=train_track_results_dataframes
@@ -1339,7 +1340,7 @@ def splitted_clustering_from_weights(test_track_results_folder
     # chunk_id_to_tr_chunks: list of dataframe in workdir/tracker/tracker_results
     pool = NonDeamonicPool(processes=11)
     eval_results = []
-    for chunk_id, test_chunk_gt in chunk_id_to_gt_chunks.items():
+    for chunk_id, test_chunk_gt in chunk_id_to_gt_chunks.items():  # trackers' result
         test_chunk_tr = chunk_id_to_tr_chunks[chunk_id]
 
         cluster_from_weights_task_args = (
@@ -1356,7 +1357,7 @@ def splitted_clustering_from_weights(test_track_results_folder
             chunk_id,
             cam_count
         )
-
+        # pickled_appearance_features
         pickle_all_reid_features(work_dirs=work_dirs
                                  , mc_cfg=mc_cfg
                                  , track_results_folder=test_chunk_tr
@@ -1369,6 +1370,7 @@ def splitted_clustering_from_weights(test_track_results_folder
 
         #evaluation_result = cluster_from_weights_task(*cluster_from_weights_task_args)
         #Will return pool.AsyncResult
+        #
         evaluation_result = pool.apply_async(cluster_from_weights_task,cluster_from_weights_task_args)
         eval_results.append(evaluation_result)
 
@@ -1398,6 +1400,7 @@ def cluster_from_weights_task(
     tracking_results = None
     try:
         print("Started clustering Task")
+        # TODO this is core code
         track_clustering = Multi_cam_clustering(
             test_track_results_folder=test_track_results_folder,
             train_track_results_folder=train_track_results_folder,
