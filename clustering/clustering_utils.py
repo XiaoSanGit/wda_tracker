@@ -78,7 +78,23 @@ def get_distances_and_indices(dataset,calculate_track_distances):
 
     return result
 
+def get_distances_and_indices_server(dataset,single_cam_constraint,calculate_track_distances):
+    print("Calculating pairwise distances")
+    result = []
+    dataset_size = len(dataset)
+    cnt = 0
+    for i in tqdm(range(dataset_size - 1)):  # ignore last i
+        for j in range(i + 1, dataset_size):  # ignore duplication
+            # TODO [server2] try to solve multi-file input
+            distances = calculate_track_distances([i], [j], dataset, single_cam_constraint[i][0]['are_tracks_cam_id_frame_disjunct'])
+            # duplicate dist, need to be remove, and there is no difference to use tuple only
+            # leave second dist here is to take up a position for tie selection
 
+            result.append([distances, [i, j]])
+            # TODO [final] improve this.
+            cnt += 1
+
+    return result
 
 def compute_pairwise_distance_normalized(distances_and_indices, dist_name_to_distance_weights):
 

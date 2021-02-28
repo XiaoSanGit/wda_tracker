@@ -64,6 +64,33 @@ class Velocity_calculation:
 
         return velocity_stats
 
+    def get_velocity_stats_from_summ(self,summ_path):
+
+
+        if os.path.exists(self.pickle_path):
+            print("Found velocity stats pickle path.")
+            print(self.pickle_path)
+            with open(self.pickle_path, "rb") as pickle_file:
+                velocity_stats = pickle.load(pickle_file)
+                print(velocity_stats)
+        else:
+            with open(summ_path, "rb") as summ:
+                velocities = pickle.load(summ)['velocity_summ']
+            # TODO [server 2] single file now. But in real world
+            velocity_mean = np.mean(velocities)
+            velocity_std = np.std(velocities)
+
+            velocity_stats = {"velocity_mean": velocity_mean
+                    , "velocity_std" : velocity_std}
+
+            print(velocity_stats)
+            with open(self.pickle_path, "wb") as pickle_file:
+                print("Writing velocity stats pickle path.")
+                print(self.pickle_path)
+                pickle.dump(velocity_stats, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return velocity_stats
+
     def get_velocity_summary(self,n_tail=40, step_width=10):
         if os.path.exists(self.pickle_path):
             print("Found velocity stats pickle path.")

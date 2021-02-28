@@ -432,7 +432,6 @@ class Multi_cam_clustering_local:
             # TODO [local 2] Divide this into parts/rename, gather on server
             path = os.path.join(folder,"velocity_summary.pkl")
             # path = os.path.join(folder, "velocity_stats.pkl")
-
             return path
 
         pickle_path = get_velocity_stats_pickle_path(dataset_type=dataset_type)
@@ -441,7 +440,7 @@ class Multi_cam_clustering_local:
                                   ,cam_ids=list(range(self.cam_count))
                                   ,pickle_path=pickle_path)
 
-
+        # TODO [local 2] The name should be different and the file should multi-files instead of single file
         velocity_stats = vc.get_velocity_summary(n_tail=40,step_width=10)
         # velocity_mean = velocity_stats["velocity_mean"]
         # TODO [server] this will be done on server
@@ -906,7 +905,7 @@ class Multi_cam_clustering_local:
         tracks_all_persons = self.person_id_tracks
 
         #tracks_all_persons = tracks_all_persons[-100:] #For faster debugging
-        # TODO [local and server] here init final track NO locally and re-arrange the NO on
+        # TODO [local and server 2] here init final track NO locally and re-arrange the NO on
         self.assign_track_unclustered_no(tracks_all_persons)
 
         current_clusters = set([(track_idx,) for track_idx,_ in enumerate(tracks_all_persons)])
@@ -1400,59 +1399,59 @@ def splitted_clustering_from_weights_local(test_track_results_folder
                                      , person_identifier
                                      , n_split_parts
                                      ):
-    def get_multi_cam_chunks_evaluation_path(config_basename):
-        folder = os.path.join(work_dirs
-                              , "clustering"
-                              , "config_runs"
-                              , config_basename
-                              , "multi_cam_evaluation")
-
-        os.makedirs(folder, exist_ok=True)
-
-        evaluations_path = os.path.join(folder,"chunks_evaluations.csv")
-
-        return evaluations_path
-
-    def get_single_cam_chunks_evaluation_path(config_basename):
-        folder = os.path.join(work_dirs
-                              , "clustering"
-                              , "config_runs"
-                              , config_basename
-                              , "single_cam_evaluation")
-
-        os.makedirs(folder, exist_ok=True)
-
-        evaluations_path = os.path.join(folder,"chunks_evaluations.csv")
-
-        return evaluations_path
-
-    def get_mean_std_multi_cam_evaluation_path(config_basename):
-        folder = os.path.join(work_dirs
-                              , "clustering"
-                              , "config_runs"
-                              , config_basename
-                              , "multi_cam_evaluation"
-                              )
-
-        os.makedirs(folder, exist_ok=True)
-
-        path = os.path.join(folder, "chunks_mean_std_evaluation.csv")
-
-        return path
-
-    def get_mean_std_single_cam_evaluation_path(config_basename):
-        folder = os.path.join(work_dirs
-                              , "clustering"
-                              , "config_runs"
-                              , config_basename
-                              , "single_cam_evaluation"
-                              )
-
-        os.makedirs(folder, exist_ok=True)
-
-        path = os.path.join(folder, "chunks_mean_std_evaluation.csv")
-
-        return path
+    # def get_multi_cam_chunks_evaluation_path(config_basename):
+    #     folder = os.path.join(work_dirs
+    #                           , "clustering"
+    #                           , "config_runs"
+    #                           , config_basename
+    #                           , "multi_cam_evaluation")
+    #
+    #     os.makedirs(folder, exist_ok=True)
+    #
+    #     evaluations_path = os.path.join(folder,"chunks_evaluations.csv")
+    #
+    #     return evaluations_path
+    #
+    # def get_single_cam_chunks_evaluation_path(config_basename):
+    #     folder = os.path.join(work_dirs
+    #                           , "clustering"
+    #                           , "config_runs"
+    #                           , config_basename
+    #                           , "single_cam_evaluation")
+    #
+    #     os.makedirs(folder, exist_ok=True)
+    #
+    #     evaluations_path = os.path.join(folder,"chunks_evaluations.csv")
+    #
+    #     return evaluations_path
+    #
+    # def get_mean_std_multi_cam_evaluation_path(config_basename):
+    #     folder = os.path.join(work_dirs
+    #                           , "clustering"
+    #                           , "config_runs"
+    #                           , config_basename
+    #                           , "multi_cam_evaluation"
+    #                           )
+    #
+    #     os.makedirs(folder, exist_ok=True)
+    #
+    #     path = os.path.join(folder, "chunks_mean_std_evaluation.csv")
+    #
+    #     return path
+    #
+    # def get_mean_std_single_cam_evaluation_path(config_basename):
+    #     folder = os.path.join(work_dirs
+    #                           , "clustering"
+    #                           , "config_runs"
+    #                           , config_basename
+    #                           , "single_cam_evaluation"
+    #                           )
+    #
+    #     os.makedirs(folder, exist_ok=True)
+    #
+    #     path = os.path.join(folder, "chunks_mean_std_evaluation.csv")
+    #
+    #     return path
 
     def get_async_tracking_results(eval_results):
 
@@ -1466,47 +1465,47 @@ def splitted_clustering_from_weights_local(test_track_results_folder
 
         return tracking_results
 
-    def combine_tracking_results(eval_results):
-
-        tracking_results = pd.DataFrame()
-        for result in eval_results:
-
-            if isinstance(result,multiprocessing.pool.AsyncResult):
-                result_dataframe = result.get()
-            else:
-                result_dataframe = result
-
-            tracking_results = tracking_results.append(result_dataframe,ignore_index=True)
-
-        tracking_results.sort_values('chunk_id',inplace=True)
-
-        return tracking_results
-
-    def evaluate_after_clustering(eval_results):
-        single_cam_eval_summarys = list(map(lambda x: x["single_cam_eval_summary"], eval_results))
-        multi_cam_eval_summarys = list(map(lambda x: x["multi_cam_eval_summary"], eval_results))
-        single_cam_eval_dataframe = combine_tracking_results(single_cam_eval_summarys)
-        multi_cam_eval_dataframe = combine_tracking_results(multi_cam_eval_summarys)
-
-        multi_cam_chunks_evaluation_path = get_multi_cam_chunks_evaluation_path(config_basename)
-
-        multi_cam_eval_dataframe.to_csv(multi_cam_chunks_evaluation_path, index=False)
-
-        multi_cam_mean_std_chunks = calculate_multi_cam_mean_and_std(multi_cam_eval_dataframe)
-
-        multi_cam_mean_std_evaluation_path = get_mean_std_multi_cam_evaluation_path(config_basename)
-
-        multi_cam_mean_std_chunks.to_csv(multi_cam_mean_std_evaluation_path, index=False)
-
-        single_cam_chunks_evaluation_path = get_single_cam_chunks_evaluation_path(config_basename)
-
-        single_cam_mean_std_evaluation_path = get_mean_std_single_cam_evaluation_path(config_basename)
-
-        single_cam_mean_and_std = calculate_single_cam_mean_and_std(single_cam_eval_dataframe)
-
-        single_cam_mean_and_std.to_csv(single_cam_mean_std_evaluation_path, index=False)
-
-        single_cam_eval_dataframe.to_csv(single_cam_chunks_evaluation_path, index=False)
+    # def combine_tracking_results(eval_results):
+    #
+    #     tracking_results = pd.DataFrame()
+    #     for result in eval_results:
+    #
+    #         if isinstance(result,multiprocessing.pool.AsyncResult):
+    #             result_dataframe = result.get()
+    #         else:
+    #             result_dataframe = result
+    #
+    #         tracking_results = tracking_results.append(result_dataframe,ignore_index=True)
+    #
+    #     tracking_results.sort_values('chunk_id',inplace=True)
+    #
+    #     return tracking_results
+    #
+    # def evaluate_after_clustering(eval_results):
+    #     single_cam_eval_summarys = list(map(lambda x: x["single_cam_eval_summary"], eval_results))
+    #     multi_cam_eval_summarys = list(map(lambda x: x["multi_cam_eval_summary"], eval_results))
+    #     single_cam_eval_dataframe = combine_tracking_results(single_cam_eval_summarys)
+    #     multi_cam_eval_dataframe = combine_tracking_results(multi_cam_eval_summarys)
+    #
+    #     multi_cam_chunks_evaluation_path = get_multi_cam_chunks_evaluation_path(config_basename)
+    #
+    #     multi_cam_eval_dataframe.to_csv(multi_cam_chunks_evaluation_path, index=False)
+    #
+    #     multi_cam_mean_std_chunks = calculate_multi_cam_mean_and_std(multi_cam_eval_dataframe)
+    #
+    #     multi_cam_mean_std_evaluation_path = get_mean_std_multi_cam_evaluation_path(config_basename)
+    #
+    #     multi_cam_mean_std_chunks.to_csv(multi_cam_mean_std_evaluation_path, index=False)
+    #
+    #     single_cam_chunks_evaluation_path = get_single_cam_chunks_evaluation_path(config_basename)
+    #
+    #     single_cam_mean_std_evaluation_path = get_mean_std_single_cam_evaluation_path(config_basename)
+    #
+    #     single_cam_mean_and_std = calculate_single_cam_mean_and_std(single_cam_eval_dataframe)
+    #
+    #     single_cam_mean_and_std.to_csv(single_cam_mean_std_evaluation_path, index=False)
+    #
+    #     single_cam_eval_dataframe.to_csv(single_cam_chunks_evaluation_path, index=False)
 
 
     # TODO [local 2] try to eliminate the cam_count and upload only one trunk. Here we ignore.
@@ -1586,7 +1585,7 @@ def cluster_from_weights_task_local(
     tracking_results = None
     try:
         print("Started clustering Task")
-        # TODO [local] CORE: split this class into local and server.
+        # TODO [local and server] CORE: split this class into local and server.
         track_clustering = Multi_cam_clustering_local(
             test_track_results_folder=test_track_results_folder,
             train_track_results_folder=train_track_results_folder,
