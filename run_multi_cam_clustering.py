@@ -18,8 +18,8 @@ import mmcv
 from feature_extractors.reid_strong_baseline.utils.logger import setup_logger
 import json
 
-from clustering.multi_cam_clustering import splitted_clustering_from_weights, find_clustering_weights
-
+from clustering.multi_cam_clustering_local import splitted_clustering_from_weights_local, find_clustering_weights
+from clustering.multi_cam_clustering_server import splitted_clustering_from_weights_server,find_clustering_weights
 
 class Run_multi_cam_clustering:
     def __init__(self,args):
@@ -69,20 +69,37 @@ class Run_multi_cam_clustering:
 
         if self.cfg.cluster_from_weights.run:
 
-
-            splitted_clustering_from_weights(test_track_results_folder=self.cfg.test_track_results_folder
-                                             , train_track_results_folder=self.cfg.train_track_results_folder
-                                             , work_dirs=self.cfg.work_dirs
-                                             , test_dataset_folder=self.cfg.test_dataset_folder
-                                             , train_dataset_folder=self.cfg.train_dataset_folder
-                                             , mc_cfg=self.cfg
-                                             , cam_count=self.cfg.cam_count
-                                             , best_weights_path=self.cfg.cluster_from_weights.best_weights_path
-                                             , default_weights=self.cfg.cluster_from_weights.default_weights
-                                             , config_basename=self.cfg.config_basename
-                                             , person_identifier="person_id"
-                                             , n_split_parts=self.cfg.cluster_from_weights.split_count
-                                             )
+            # TODO [local and server] find a method to make this func can work for local and server at the same time.
+            #      Now I just use two diff func and flag
+            on_server = True
+            if on_server:
+                splitted_clustering_from_weights_server(test_track_results_folder=self.cfg.test_track_results_folder
+                                                       , train_track_results_folder=self.cfg.train_track_results_folder
+                                                       , work_dirs=self.cfg.work_dirs
+                                                       , test_dataset_folder=self.cfg.test_dataset_folder
+                                                       , train_dataset_folder=self.cfg.train_dataset_folder
+                                                       , mc_cfg=self.cfg
+                                                       , cam_count=self.cfg.cam_count
+                                                       , best_weights_path=self.cfg.cluster_from_weights.best_weights_path
+                                                       , default_weights=self.cfg.cluster_from_weights.default_weights
+                                                       , config_basename=self.cfg.config_basename
+                                                       , person_identifier="person_id"
+                                                       , n_split_parts=self.cfg.cluster_from_weights.split_count
+                                                       )
+            else:
+                splitted_clustering_from_weights_local(test_track_results_folder=self.cfg.test_track_results_folder
+                                                 , train_track_results_folder=self.cfg.train_track_results_folder
+                                                 , work_dirs=self.cfg.work_dirs
+                                                 , test_dataset_folder=self.cfg.test_dataset_folder
+                                                 , train_dataset_folder=self.cfg.train_dataset_folder
+                                                 , mc_cfg=self.cfg
+                                                 , cam_count=self.cfg.cam_count
+                                                 , best_weights_path=self.cfg.cluster_from_weights.best_weights_path
+                                                 , default_weights=self.cfg.cluster_from_weights.default_weights
+                                                 , config_basename=self.cfg.config_basename
+                                                 , person_identifier="person_id"
+                                                 , n_split_parts=self.cfg.cluster_from_weights.split_count
+                                                 )
 
 
 

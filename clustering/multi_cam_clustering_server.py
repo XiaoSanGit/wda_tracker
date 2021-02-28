@@ -36,7 +36,7 @@ def get_feature_pickle_folder(work_dirs, config_basename, dataset_type):
                                          , config_basename
                                          , "pickled_appearance_features"
                                          , dataset_type
-                                          )
+                                         )
 
     return feature_pickle_folder
 
@@ -113,8 +113,7 @@ def pickle_all_reid_features(work_dirs
         track_results_df = track_results_one_cam["track_results"]
         cam_id = track_results_one_cam["cam_id"]
         cam_video_path = os.path.join(dataset_folder,"cam_{}".format(cam_id),"cam_{}.mp4".format(cam_id))
-        # [local] here take original video to extract feature in clustering
-        video_capture = cv2.VideoCapture(cam_video_path)
+        video_capture = cv2.VideoCapture(cam_video_path) # TODO [Local] here take original video to extract feature in clustering
 
 
 
@@ -188,12 +187,12 @@ class Multi_cam_clustering:
 
 
         person_id_tracks_pickle_folder = os.path.join(self.work_dirs
-                                             , "clustering"
-                                             , "config_runs"
-                                             , config_basename
-                                             , "person_id_tracks"
-                                             , "chunk_{}".format(self.chunk_id)
-                                             , dataset_type)
+                                                      , "clustering"
+                                                      , "config_runs"
+                                                      , config_basename
+                                                      , "person_id_tracks"
+                                                      , "chunk_{}".format(self.chunk_id)
+                                                      , dataset_type)
 
         os.makedirs(person_id_tracks_pickle_folder,exist_ok=True)
 
@@ -373,12 +372,12 @@ class Multi_cam_clustering:
         def get_velocity_stats_pickle_path(dataset_type):
 
             folder = os.path.join(self.work_dirs
-                             ,"clustering"
-                             ,"config_runs"
-                             ,self.config_basename
-                             ,"velocity_stats"
-                             , "chunk_{}".format(self.chunk_id)
-                             , dataset_type)
+                                  ,"clustering"
+                                  ,"config_runs"
+                                  ,self.config_basename
+                                  ,"velocity_stats"
+                                  , "chunk_{}".format(self.chunk_id)
+                                  , dataset_type)
 
 
             os.makedirs(folder, exist_ok=True)
@@ -564,13 +563,13 @@ class Multi_cam_clustering:
                 track_unclustered_no = track_dict["track_unclustered_no"]
                 for track_pos in track:
                     combined_tracks.append({"frame_no_cam": track_pos["frame_no_cam"]
-                                                                 , "cam_id": cam_id
-                                                                 , "person_id": track_no
-                                                                 , "track_unclustered_no" : track_unclustered_no
-                                                                 , "xtl": track_pos["bbox"][0]
-                                                                 , "ytl": track_pos["bbox"][1]
-                                                                 , "xbr": track_pos["bbox"][2]
-                                                                 , "ybr": track_pos["bbox"][3]})
+                                               , "cam_id": cam_id
+                                               , "person_id": track_no
+                                               , "track_unclustered_no" : track_unclustered_no
+                                               , "xtl": track_pos["bbox"][0]
+                                               , "ytl": track_pos["bbox"][1]
+                                               , "xbr": track_pos["bbox"][2]
+                                               , "ybr": track_pos["bbox"][3]})
 
             combined_tracks = pd.DataFrame(combined_tracks)
             combined_tracks = combined_tracks.astype({"frame_no_cam": int
@@ -619,11 +618,11 @@ class Multi_cam_clustering:
 
         def get_cam_transition_matrix_path(work_dirs, config_basename, dataset_type):
             cam_transitions_folder = os.path.join(work_dirs
-                                                         , "clustering"
-                                                         , "config_runs"
-                                                         , config_basename
-                                                         , "cam_transitions"
-                                                         , dataset_type)
+                                                  , "clustering"
+                                                  , "config_runs"
+                                                  , config_basename
+                                                  , "cam_transitions"
+                                                  , dataset_type)
 
             os.makedirs(cam_transitions_folder, exist_ok=True)
 
@@ -643,9 +642,9 @@ class Multi_cam_clustering:
 
         print("Found no camera transition matrix. Calculating cam transition matrix now.")
         self.camera_transition_matrix = get_camera_transition_matrix(dataset_path=self.train_dataset_folder
-                                                                         ,cam_count=self.cam_count
-                                                                         ,output_path=transition_matrix_path
-                                                                         ,working_dirs=self.work_dirs)
+                                                                     ,cam_count=self.cam_count
+                                                                     ,output_path=transition_matrix_path
+                                                                     ,working_dirs=self.work_dirs)
 
 
 
@@ -661,10 +660,10 @@ class Multi_cam_clustering:
                                                           , dataset_type="train")
 
         self.cam_homographies = get_cam_homographies(self.train_dataset_folder
-                             , self.work_dirs
-                             , self.cam_count
-                             , person_identifier=self.person_identifier
-                             , pickle_path=cam_homographies_path)
+                                                     , self.work_dirs
+                                                     , self.cam_count
+                                                     , person_identifier=self.person_identifier
+                                                     , pickle_path=cam_homographies_path)
 
 
 
@@ -763,12 +762,12 @@ class Multi_cam_clustering:
         def get_distances_and_indices_path():
 
             folder = os.path.join(self.work_dirs
-                                                         , "clustering"
-                                                         , "config_runs"
-                                                         , self.config_basename
-                                                         , "multicam_distances_and_indices"
-                                                         , "chunk_{}".format(self.chunk_id)
-                                                         , dataset_type )
+                                  , "clustering"
+                                  , "config_runs"
+                                  , self.config_basename
+                                  , "multicam_distances_and_indices"
+                                  , "chunk_{}".format(self.chunk_id)
+                                  , dataset_type )
 
 
             os.makedirs(folder, exist_ok=True)
@@ -806,10 +805,10 @@ class Multi_cam_clustering:
 
 
     def cluster_tracks_via_hierarchical(self,dataset_type
-                                            ,dist_name_to_distance_weights
-                                            ,distance_cache_active
-                                            ,person_count=350
-                                            ,threshold=4000.0):
+                                        ,dist_name_to_distance_weights
+                                        ,distance_cache_active
+                                        ,person_count=350
+                                        ,threshold=4000.0):
 
         track_results_folder = None
         if dataset_type == "train":
@@ -879,12 +878,12 @@ class Multi_cam_clustering:
         assign_track_nos_to_track_dict(cluster_tracks)
 
         save_results_folder,tracking_results = self.save_track_all_cams(track_clusters=cluster_tracks
-                                                                 ,config_basename=self.config_basename
-                                                                 ,dataset_type=dataset_type)
+                                                                        ,config_basename=self.config_basename
+                                                                        ,dataset_type=dataset_type)
         # modify the tracking_unclustered_no. and person id
         return { "track_results_path" : save_results_folder
-                , "track_count" : len(current_clusters)
-                , "tracking_results" : tracking_results}
+            , "track_count" : len(current_clusters)
+            , "tracking_results" : tracking_results}
 
     def add_heap_entry(self,heap, new_cluster, current_clusters):
         for ex_cluster in current_clusters:
@@ -926,8 +925,8 @@ class Multi_cam_clustering:
     def get_best_cam_settings_path(self):
 
         folder_path = os.path.join(self.work_dirs , "clustering"
-                                                     , "best_multi_cam_settings"
-                                                     , os.path.basename(self.train_track_results_folder))
+                                   , "best_multi_cam_settings"
+                                   , os.path.basename(self.train_track_results_folder))
 
 
         os.makedirs(folder_path, exist_ok=True)
@@ -939,8 +938,8 @@ class Multi_cam_clustering:
     def get_cam_tresh_results_path(self):
 
         folder_path = os.path.join(self.work_dirs , "clustering"
-                                                     , "multi_cam_multiple_tresh_results"
-                                                     , os.path.basename(self.train_track_results_folder))
+                                   , "multi_cam_multiple_tresh_results"
+                                   , os.path.basename(self.train_track_results_folder))
 
 
         os.makedirs(folder_path, exist_ok=True)
@@ -990,10 +989,10 @@ class Multi_cam_clustering:
                                                                     "weight_no of weights: {} of {}".format(dist_name,weight,weight_no+1,len(search_weights))))
 
                 clustering_results = self.cluster_tracks_via_hierarchical(dataset_type="train"
-                                              ,dist_name_to_distance_weights=dist_name_to_distance_weights
-                                              ,person_count=1
-                                                ,distance_cache_active=True
-                                              ,threshold=1)
+                                                                          ,dist_name_to_distance_weights=dist_name_to_distance_weights
+                                                                          ,person_count=1
+                                                                          ,distance_cache_active=True
+                                                                          ,threshold=1)
 
                 self.logger.info(get_elapsed_time_and_msg(start_time=find_weights_start_time
                                                           ,
@@ -1001,10 +1000,10 @@ class Multi_cam_clustering:
                                                               dist_name, weight)))
 
                 result = Multicam_evaluation(dataset_folder=self.train_dataset_folder
-                    ,track_results_folder=clustering_results["tracking_results"]
-                    ,cam_ids=list(range(self.cam_count))
-                    ,working_dir=self.work_dirs
-                    ,motmetrics_distance=Motmetrics_distance.iou_matrix).evaluate()
+                                             ,track_results_folder=clustering_results["tracking_results"]
+                                             ,cam_ids=list(range(self.cam_count))
+                                             ,working_dir=self.work_dirs
+                                             ,motmetrics_distance=Motmetrics_distance.iou_matrix).evaluate()
 
 
                 evaluation_summary = result["summary"]
@@ -1045,7 +1044,7 @@ class Multi_cam_clustering:
 
             for dist_name, distance_weight in dist_name_to_distance_weights.items():
                 best_weights_df = best_weights_df.append({ "dist_name" : dist_name
-                                                           ,"dist_weight" : distance_weight
+                                                             ,"dist_weight" : distance_weight
                                                            },ignore_index=True)
 
             best_weights_path = self.get_best_weights_path()
@@ -1110,18 +1109,18 @@ class Multi_cam_clustering:
         self.logger.info("Starting multi cam clustering chunk_{}.".format(self.chunk_id))
         # TODO core core code
         clustering_results = self.cluster_tracks_via_hierarchical(dist_name_to_distance_weights=best_weights
-                                                            ,threshold=1
-                                                            ,distance_cache_active=True
-                                                            ,person_count=1
-                                                            ,dataset_type=dataset_type)
+                                                                  ,threshold=1
+                                                                  ,distance_cache_active=True
+                                                                  ,person_count=1
+                                                                  ,dataset_type=dataset_type)
 
         self.logger.info("Starting single cam evaluation chunk_{}.".format(self.chunk_id))
 
         # following is the eval. So do not change
         single_cam_eval_summary  = eval_single_cam_multiple_cams(dataset_base=dataset_folder
-                                                                ,track_results_folder=clustering_results["tracking_results"]
-                                                                ,cam_ids=list(range(self.cam_count))
-                                                                ,working_dir=self.work_dirs)
+                                                                 ,track_results_folder=clustering_results["tracking_results"]
+                                                                 ,cam_ids=list(range(self.cam_count))
+                                                                 ,working_dir=self.work_dirs)
 
         self.logger.info("Finished single cam evaluation chunk_{}.".format(self.chunk_id))
 
@@ -1129,11 +1128,11 @@ class Multi_cam_clustering:
 
         self.logger.info("Starting multi cam evaluation chunk_{}.".format(self.chunk_id))
         multi_cam_eval_result = Multicam_evaluation(
-                                    dataset_folder=dataset_folder
-                                    , track_results_folder=clustering_results["tracking_results"]
-                                    , working_dir=self.work_dirs
-                                    , cam_ids=list(range(self.cam_count))
-                                    ,motmetrics_distance=Motmetrics_distance.iou_matrix).evaluate()
+            dataset_folder=dataset_folder
+            , track_results_folder=clustering_results["tracking_results"]
+            , working_dir=self.work_dirs
+            , cam_ids=list(range(self.cam_count))
+            ,motmetrics_distance=Motmetrics_distance.iou_matrix).evaluate()
 
         self.logger.info(get_elapsed_time_and_msg(start_time, multi_cam_eval_result["strsummary"])
                          + " chunk_id: {}".format(self.chunk_id))
@@ -1142,34 +1141,34 @@ class Multi_cam_clustering:
 
 
         return {"multi_cam_eval_summary" : evaluation_summary
-                ,"single_cam_eval_summary" : single_cam_eval_summary }
+            ,"single_cam_eval_summary" : single_cam_eval_summary }
 
 
 
 def find_clustering_weights(test_track_results_folder
-                             , train_track_results_folder
-                             , work_dirs
-                             , test_dataset_folder
-                             , train_dataset_folder
-                             , mc_cfg
-                             , cam_count
-                             , dist_name_to_distance_weights
-                             , weight_search_configs
-                             , config_basename
-                             , person_identifier
-                             , take_frames_per_cam
-                             ):
+                            , train_track_results_folder
+                            , work_dirs
+                            , test_dataset_folder
+                            , train_dataset_folder
+                            , mc_cfg
+                            , cam_count
+                            , dist_name_to_distance_weights
+                            , weight_search_configs
+                            , config_basename
+                            , person_identifier
+                            , take_frames_per_cam
+                            ):
 
 
 
     feature_extraction = []
 
     train_track_results_dataframes,train_dataset_dataframes = get_track_results_and_dataset(
-                                                                track_results_folder=train_track_results_folder
-                                                               , dataset_folder=train_dataset_folder
-                                                               , working_dir=work_dirs
-                                                               , cam_count=cam_count
-                                                               , until_frame_no=take_frames_per_cam)
+        track_results_folder=train_track_results_folder
+        , dataset_folder=train_dataset_folder
+        , working_dir=work_dirs
+        , cam_count=cam_count
+        , until_frame_no=take_frames_per_cam)
 
 
     # pickled_appearance_features
@@ -1197,13 +1196,13 @@ def find_clustering_weights(test_track_results_folder
     )
 
     multi_cam_clustering.find_weights(weight_search_configs=weight_search_configs
-                                        ,dist_name_to_distance_weights=dist_name_to_distance_weights)
+                                      ,dist_name_to_distance_weights=dist_name_to_distance_weights)
 
 
 
 
 
-def splitted_clustering_from_weights(test_track_results_folder
+def splitted_clustering_from_weights_server(test_track_results_folder
                                      , train_track_results_folder
                                      , work_dirs
                                      , test_dataset_folder
@@ -1386,18 +1385,18 @@ def splitted_clustering_from_weights(test_track_results_folder
 
 
 def cluster_from_weights_task(
-            test_track_results_folder,
-            train_track_results_folder,
-            work_dirs,
-            test_dataset_folder,
-            train_dataset_folder,
-            person_identifier,
-            best_weights_path,
-            default_weights,
-            dataset_type,
-            config_basename,
-            chunk_id,
-            cam_count):
+        test_track_results_folder,
+        train_track_results_folder,
+        work_dirs,
+        test_dataset_folder,
+        train_dataset_folder,
+        person_identifier,
+        best_weights_path,
+        default_weights,
+        dataset_type,
+        config_basename,
+        chunk_id,
+        cam_count):
     tracking_results = None
     try:
         print("Started clustering Task")
@@ -1428,7 +1427,7 @@ def cluster_from_weights_task(
 
         logger.info("Sizes of all variables after clustering"
                     " and evaluation of chunk {} : {}".format(chunk_id
-                                                                ,variable_sizes_string))
+                                                              ,variable_sizes_string))
 
 
         gc.collect()

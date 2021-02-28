@@ -64,8 +64,26 @@ class Velocity_calculation:
 
         return velocity_stats
 
+    def get_velocity_summary(self,n_tail=40, step_width=10):
+        if os.path.exists(self.pickle_path):
+            print("Found velocity stats pickle path.")
+            print(self.pickle_path)
+            with open(self.pickle_path, "rb") as pickle_file:
+                velocity_summ = pickle.load(pickle_file)
+                # print(velocity_stats)
+        else:
 
-    def calculate_velocity_stats(self,n_tail=40, step_width=10):
+            velocity_summ = self.calculate_velocity_stats_local(n_tail=n_tail,step_width=step_width)
+            # print(velocity_stats)
+            with open(self.pickle_path, "wb") as pickle_file:
+                print("Writing velocity stats pickle path.")
+                print(self.pickle_path)
+                pickle.dump(velocity_summ, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return velocity_summ
+
+
+    def calculate_velocity_stats_local(self,n_tail=40, step_width=10):
 
         print("Starting calculation of velocity stats")
 
@@ -116,12 +134,15 @@ class Velocity_calculation:
 
                 velocities.extend(person_velocities)
 
+        # TODO [server] this will be done on server
+        # velocity_mean = np.mean(velocities)
+        # velocity_std = np.std(velocities)
 
-        velocity_mean = np.mean(velocities)
-        velocity_std = np.std(velocities)
-
-        return { "velocity_mean" : velocity_mean
-                , "velocity_std" : velocity_std}
+        # return { "velocity_mean" : velocity_mean
+        #         , "velocity_std" : velocity_std}
+        return {
+            "velocity_summ":velocities
+        }
 
 
 if __name__ == '__main__':

@@ -189,7 +189,7 @@ def get_cluster_tracks_as_list(track_cluster):
         for track_pos in track:
             track_pos["cam_id"] = cam_id
         return track
-
+    # TODO [final] this seems to be tedious
     result = []
     for track_dict in track_cluster:
         result += add_cam_id_to_track_elements(track_dict["cam_id"], track_dict["track"])
