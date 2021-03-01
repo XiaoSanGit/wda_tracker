@@ -57,7 +57,7 @@ def get_frame_nos_track_results(track_results):
     return frame_numbers
 
 
-def load_tracks_all_cams(cam_count, track_results_folder):
+def load_tracks_single_cam(cam_no, track_results_folder):
     track_result_dataframes = []
 
 
@@ -73,20 +73,19 @@ def load_tracks_all_cams(cam_count, track_results_folder):
 
 
     # load track results for each cam
-    for cam_id in range(cam_count):
-        track_result_path = osp.join(track_results_folder, "track_results_{}.txt".format(cam_id))
+    track_result_path = osp.join(track_results_folder, "track_results_{}.txt".format(cam_no))
 
-        track_result_dataframe = pd.read_csv(track_result_path)
+    track_result_dataframe = pd.read_csv(track_result_path)
 
-        track_result_dataframe = track_result_dataframe.astype({"frame_no_cam": int
-                                                                   , "cam_id": int
-                                                                   , "person_id": int
-                                                                   , "xtl": int
-                                                                   , "ytl": int
-                                                                   , "xbr": int,
-                                                                "ybr": int})
+    track_result_dataframe = track_result_dataframe.astype({"frame_no_cam": int
+                                                               , "cam_id": int
+                                                               , "person_id": int
+                                                               , "xtl": int
+                                                               , "ytl": int
+                                                               , "xbr": int,
+                                                            "ybr": int})
 
-        track_result_dataframes.append({"cam_id": cam_id, "track_results": track_result_dataframe})
+    track_result_dataframes.append({"cam_id": cam_no, "track_results": track_result_dataframe})
 
     return track_result_dataframes
 
@@ -128,18 +127,16 @@ def pickle_all_reid_features(work_dirs
                              ,dataset_folder
                              ,config_basename
                              ,dataset_type
-                             ,cam_count
+                             ,cam_no
                              ,feature_extraction):
-
-
-    track_result_dataframes = load_tracks_all_cams(cam_count=cam_count,
-                                                   track_results_folder=track_results_folder)
+    # [local 2] now still keep the structure: list->df. Easy to extend if it is multi-folder/single-cam data
+    track_result_dataframes = load_tracks_single_cam(cam_no, track_results_folder=track_results_folder)
     print("Creating features of dataset path: {}".format(dataset_folder))
     print("Creating features of dataset type: {}".format(dataset_type))
 
     if isinstance(track_results_folder,str):
         print("Track results folder: {}".format(track_results_folder))
-
+    # [local 2] now still keep the structure: list->df. Easy to extend if it is multi-folder/single-cam data
     for track_results_one_cam in track_result_dataframes:
 
         frame_nos = get_frame_nos_track_results(track_results_one_cam["track_results"])
@@ -196,7 +193,7 @@ class Multi_cam_clustering_local:
                  ,test_dataset_folder
                  ,train_dataset_folder
                  ,work_dirs
-                 ,cam_count
+                 ,cam_no
                  ,person_identifier
                  ,config_basename
                  ,chunk_id):
@@ -208,7 +205,7 @@ class Multi_cam_clustering_local:
         self.test_dataset_folder = test_dataset_folder
         self.train_dataset_folder = train_dataset_folder
         self.work_dirs = work_dirs
-        self.cam_count = cam_count
+        self.cam_no = cam_no # [local 2]add camera id
         self.track_result_dataframes = []
         self.person_id_tracks = []
         self.track_no_to_track_frame_no_cam_to_track_pos = {} #to cache the results of the function which calculates this
@@ -216,12 +213,11 @@ class Multi_cam_clustering_local:
         self.config_basename = config_basename
         self.chunk_id = chunk_id
         self.should_save_track_results = True
-        # TODO [local 2]add camera id
         # self.camera_id = None
 
-    def get_person_id_tracks_pickle_path(self,config_basename, dataset_type):
+    def get_person_id_tracks_pickle_path_local(self,config_basename, dataset_type):
 
-
+        cam_id = self.cam_no # use this to point out id_tracks from diff cam. This will be integrate on server
         person_id_tracks_pickle_folder = os.path.join(self.work_dirs
                                                       , "clustering"
                                                       , "config_runs"
@@ -232,7 +228,8 @@ class Multi_cam_clustering_local:
 
         os.makedirs(person_id_tracks_pickle_folder,exist_ok=True)
 
-        person_id_tracks_pickle_path = osp.join(person_id_tracks_pickle_folder,"person_id_tracks.pkl")
+        person_id_tracks_pickle_path = osp.join(person_id_tracks_pickle_folder,
+                                                "person_id_tracks_cam_{}.pkl".format(cam_id))
 
         return person_id_tracks_pickle_path
 
@@ -240,9 +237,9 @@ class Multi_cam_clustering_local:
     def load_person_id_tracks(self,track_results_folder):
         if len(self.person_id_tracks) > 0:
             return
-        # TODO [local2] change this to load_tracks_single_cam
-        self.track_result_dataframes = load_tracks_all_cams(cam_count=self.cam_count,
-                                                            track_results_folder=track_results_folder)
+        # [local2] change this to load_tracks_single_cam
+        self.track_result_dataframes = load_tracks_single_cam(self.cam_no,
+                                                              track_results_folder=track_results_folder)
 
         for track_results in self.track_result_dataframes:
             track_results_df = track_results["track_results"]
@@ -255,8 +252,10 @@ class Multi_cam_clustering_local:
 
 
     def get_all_tracks_with_feature_mean(self,track_results_folder,dataset_type):
-        # TODO [local 2] may change multi-cam to single, and change .pkl to .json
-        get_person_id_tracks_pickle_path = self.get_person_id_tracks_pickle_path(self.config_basename,dataset_type)
+        # TODO [local 3] may change .pkl to .json
+        # [local 2] Now the fileName is attached the camera no.
+        get_person_id_tracks_pickle_path = self.get_person_id_tracks_pickle_path_local(self.config_basename,
+                                                                                       dataset_type)
         # [personID,camID,track,feature_mean(mean all person feature per cam per frame)]
         if os.path.exists(get_person_id_tracks_pickle_path):
             print("Found pickled person_id_tracks")
@@ -271,7 +270,7 @@ class Multi_cam_clustering_local:
 
         for track_dict in tqdm(self.person_id_tracks):
 
-            # TODO [local 2] seems no need to change
+            # [local 2] seems no need to change. The smallest cell is a person's track in one cam.
             feature_mean = self.calculate_track_feature_mean(track=track_dict
                                                              ,dataset_type=dataset_type)
             track_dict["feature_mean"] = feature_mean
@@ -417,6 +416,8 @@ class Multi_cam_clustering_local:
         return True
 
     def collect_velocity_info(self,track_results_folder,dataset_type):
+        cam_id = self.cam_no
+
         def get_velocity_stats_pickle_path(dataset_type):
 
             folder = os.path.join(self.work_dirs
@@ -427,20 +428,19 @@ class Multi_cam_clustering_local:
                                   , "chunk_{}".format(self.chunk_id)
                                   , dataset_type)
 
-
             os.makedirs(folder, exist_ok=True)
-            # TODO [local 2] Divide this into parts/rename, gather on server
-            path = os.path.join(folder,"velocity_summary.pkl")
+            # [local 2] Divide this into parts/rename, TODO gather on server
+            path = os.path.join(folder,"velocity_summary_cam_{}.pkl".format(cam_id))
             # path = os.path.join(folder, "velocity_stats.pkl")
             return path
 
         pickle_path = get_velocity_stats_pickle_path(dataset_type=dataset_type)
-        # TODO [local 2] Divide this into parts/rename, gather on server
+        # [local 2] Rename into parts, TODO gather on server
         vc = Velocity_calculation(track_results_folder=track_results_folder
-                                  ,cam_ids=list(range(self.cam_count))
+                                  ,cam_ids=[cam_id]
                                   ,pickle_path=pickle_path)
 
-        # TODO [local 2] The name should be different and the file should multi-files instead of single file
+        # [local 2] The names are different and the file should multi-files instead of single file
         velocity_stats = vc.get_velocity_summary(n_tail=40,step_width=10)
         # velocity_mean = velocity_stats["velocity_mean"]
         # TODO [server] this will be done on server
@@ -655,7 +655,7 @@ class Multi_cam_clustering_local:
 
         cam_id_to_cam_id_to_hull = get_overlapping_areas(dataset_path=self.train_dataset_folder
                                                          ,working_dirs=self.work_dirs
-                                                         ,cam_count=self.cam_count
+                                                         ,cam_count=self.cam_no
                                                          ,person_identifier=self.person_identifier
                                                          ,pickle_path=overlapping_area_hulls_path)
 
@@ -692,7 +692,7 @@ class Multi_cam_clustering_local:
 
         print("Found no camera transition matrix. Calculating cam transition matrix now.")
         self.camera_transition_matrix = get_camera_transition_matrix(dataset_path=self.train_dataset_folder
-                                                                     ,cam_count=self.cam_count
+                                                                     ,cam_count=self.cam_no
                                                                      ,output_path=transition_matrix_path
                                                                      ,working_dirs=self.work_dirs)
 
@@ -711,7 +711,7 @@ class Multi_cam_clustering_local:
 
         self.cam_homographies = get_cam_homographies(self.train_dataset_folder
                                                      , self.work_dirs
-                                                     , self.cam_count
+                                                     , self.cam_no
                                                      , person_identifier=self.person_identifier
                                                      , pickle_path=cam_homographies_path)
 
@@ -816,9 +816,9 @@ class Multi_cam_clustering_local:
                               , self.config_basename
                               , "single_cam_constraints"
                               , "chunk_{}".format(self.chunk_id)
-                              , dataset_type )
+                              , dataset_type)
         os.makedirs(folder, exist_ok=True)
-        pickle_path = osp.join(folder, "single_cam_constraint_distance.pkl")
+        pickle_path = osp.join(folder, "cam_{}_constraint_distance.pkl".format(self.cam_no))
         if distance_cache_active and os.path.exists(pickle_path):
             print("Found single cam distances_and_indices.")
             print(pickle_path)
@@ -887,13 +887,13 @@ class Multi_cam_clustering_local:
             track_results_folder = self.train_track_results_folder
         elif dataset_type == "test":
             track_results_folder = self.test_track_results_folder
-        # TODO [local2] calculate mean of feature in all frames per personID for ONLY ONE CAM
+        # [local2] calculate mean of feature in all frames per personID for ONLY ONE CAM by using cam_no
         self.get_all_tracks_with_feature_mean(track_results_folder,dataset_type)
-        # TODO [server once] calculate the overlap. Use all detection info seems
+        # [server once] calculate the overlap. Use all detection info seems
         # self.initialize_overlapping_area_tester()
-        # TODO [server once] Use all detection info seems. Share time-suming part with overlapping
+        # [server once] Use all detection info seems. Share time-suming part with overlapping
         # self.initialize_cam_homographies()
-        # TODO [local and server] use get_person_id_to_track() as well, can be done locally and combine on the server
+        # TODO [local and server] use get_person_id_to_track(), can be done locally(√) and combine on the server
         # rename local ver to collect_velocity_info
         self.collect_velocity_info(track_results_folder=track_results_folder
                                                       ,dataset_type=dataset_type)
@@ -905,19 +905,20 @@ class Multi_cam_clustering_local:
         tracks_all_persons = self.person_id_tracks
 
         #tracks_all_persons = tracks_all_persons[-100:] #For faster debugging
-        # TODO [local and server 2] here init final track NO locally and re-arrange the NO on
-        self.assign_track_unclustered_no(tracks_all_persons)
+        # [server 2] Directly init the NO on server.
+        # self.assign_track_unclustered_no(tracks_all_persons)
 
         current_clusters = set([(track_idx,) for track_idx,_ in enumerate(tracks_all_persons)])
         old_clusters = []
 
-        # TODO [local and server] calculate single cam distance that can be done locally and other on server
+        # calculate single cam distance that can be done locally and other on server TODO [final] code quality check
         data_pairwise_dist = self.load_pairwise_single_cam_constraint(dataset=tracks_all_persons
                                                           ,dataset_type=dataset_type
                                                           ,distance_cache_active=distance_cache_active)
 
 
-        # TODO [server] following should be on server
+        # [server] following should be on server
+
         # self.track_pair_to_dist = get_track_pair_to_dist(data_pairwise_dist)
         #
         # heap = build_priority_queue(data_pairwise_dist)
@@ -1060,19 +1061,17 @@ class Multi_cam_clustering_local:
         It performs as a pairwise distance. And the order strickly follows the person_Id_track.
         '''
         print("Calculating single-cam pairwise constraint distances")
-        result = []
         dataset_size = len(dataset)
+        result = np.zeros((dataset_size,dataset_size))
         for i in tqdm(range(dataset_size - 1)):  # ignore last i
             for j in range(i + 1, dataset_size):  # ignore duplication
-                result_distances_local = {}
-
-                result_distances_local["are_tracks_cam_id_frame_disjunct"] \
-                    = self.are_tracks_frame_disjunct_single_cam([dataset[i]], [dataset[j]])
-
+                # result_distances_local = {}
+                # result_distances_local["distance"]
+                result[i, j] = self.are_tracks_frame_disjunct_single_cam([dataset[i]], [dataset[j]])
                 # duplicate dist, need to be remove, and there is no difference to use tuple only
                 # leave second dist here is to take up a position for tie selection
 
-                result.append([result_distances_local, [i, j]])
+                # result.append([result_distances_local, [i, j]])  #TODO [final] shitcode. Just point out the range
 
         return result
 
@@ -1091,7 +1090,7 @@ class Multi_cam_clustering_local:
         result_distances["feature_mean_distance"] = 0
         result_distances["track_pred_pos_start_distance"] = 0
 
-        # TODO [local and server] implement this localz (√) and rewrite a gathering module on server
+        # [local and server] implement this local and rewrite a gathering module on server
         # All zero for different cam_id.
         if not self.are_tracks_cam_id_frame_disjunct(candidate_track, partner_track):
             result_distances["are_tracks_cam_id_frame_disjunct"] = np.Inf # means there is a intersection (frame_id, camera_id)
@@ -1185,7 +1184,7 @@ class Multi_cam_clustering_local:
 
                 result = Multicam_evaluation(dataset_folder=self.train_dataset_folder
                                              ,track_results_folder=clustering_results["tracking_results"]
-                                             ,cam_ids=list(range(self.cam_count))
+                                             ,cam_ids=list(range(self.cam_no))
                                              ,working_dir=self.work_dirs
                                              ,motmetrics_distance=Motmetrics_distance.iou_matrix).evaluate()
 
@@ -1260,45 +1259,47 @@ class Multi_cam_clustering_local:
 
 
 
-    def cluster_from_weights(self,best_weights_path,default_weights,dataset_type):
+    def cluster_from_weights(self,dataset_type):
         # dataset_folder
-        if dataset_type == "test":
-            dataset_folder = self.test_dataset_folder
-        elif dataset_type == "train":
-            dataset_folder = self.train_dataset_folder
-        else:
-            raise Exception("Wrong dataset type provided: {}".format(dataset_type))
+        # if dataset_type == "test":
+        #     dataset_folder = self.test_dataset_folder
+        # elif dataset_type == "train":
+        #     dataset_folder = self.train_dataset_folder
+        # else:
+        #     raise Exception("Wrong dataset type provided: {}".format(dataset_type))
 
-
-        def overwrite_best_weights_in_default_weights(best_weights,default_weights):
-
-            overwritten_weights = copy.deepcopy(default_weights)
-            for _,best_weight_row in best_weights.iterrows():
-                overwritten_weights[best_weight_row["dist_name"]] = best_weight_row["dist_weight"]
-
-            return overwritten_weights
+        # [local] weights seems no need on local
+        # def overwrite_best_weights_in_default_weights(best_weights,default_weights):
+        #
+        #     overwritten_weights = copy.deepcopy(default_weights)
+        #     for _,best_weight_row in best_weights.iterrows():
+        #         overwritten_weights[best_weight_row["dist_name"]] = best_weight_row["dist_weight"]
+        #
+        #     return overwritten_weights
 
 
         start_time = time.time()
 
-        if os.path.exists(best_weights_path):
-            print("best weights path: {}".format(best_weights_path))
-            best_weights = pd.read_csv(best_weights_path)
-            best_weights = overwrite_best_weights_in_default_weights(best_weights, default_weights)
-        else:
-            print("no best weights path found using default weights")
-            best_weights = default_weights
-
-        self.logger.info(get_elapsed_time_and_msg(start_time,str(best_weights)))
+        # if os.path.exists(best_weights_path):
+        #     print("best weights path: {}".format(best_weights_path))
+        #     best_weights = pd.read_csv(best_weights_path)
+        #     best_weights = overwrite_best_weights_in_default_weights(best_weights, default_weights)
+        # else:
+        #     print("no best weights path found using default weights")
+        #     best_weights = default_weights
+        #return str(timedelta(seconds=time_difference_in_seconds)) + " : " + message
+        self.logger.info(str(timedelta(seconds=(time.time() - start_time))))
         self.logger.info("Starting multi cam clustering chunk_{}.".format(self.chunk_id))
-        # TODO [local 2] Core. Not do cluster but prepare for the clustering
+        # TODO [local 3] Core. Improve the code quality
         self.cluster_tracks_via_hierarchical_local(dataset_type=dataset_type, distance_cache_active=True)
 
         # return True  # TODO [local 3]how to figure out it is pass?
         # following is the eval. So do not change
 
+
+        #[local] No need to do evalution
         # if eval_flag:
-        #     # TODO [server] this eval part can be closed in inference. Now I use a flag to close
+        #
         #     self.logger.info("Starting single cam evaluation chunk_{}.".format(self.chunk_id))
         #     single_cam_eval_summary = eval_single_cam_multiple_cams(dataset_base=dataset_folder
         #                                                          ,track_results_folder=clustering_results["tracking_results"]
@@ -1356,28 +1357,19 @@ def find_clustering_weights(test_track_results_folder
 
 
     # pickled_appearance_features
-    pickle_all_reid_features(work_dirs=work_dirs
-                             , mc_cfg=mc_cfg
-                             , track_results_folder=train_track_results_dataframes
-                             , dataset_folder=train_dataset_folder
-                             , config_basename=config_basename
-                             , dataset_type="train"
-                             , cam_count=cam_count
-                             , feature_extraction=feature_extraction)
+    pickle_all_reid_features(work_dirs=work_dirs, mc_cfg=mc_cfg, track_results_folder=train_track_results_dataframes,
+                             dataset_folder=train_dataset_folder, config_basename=config_basename, dataset_type="train",
+                             cam_no=cam_count, feature_extraction=feature_extraction)
 
 
 
-    multi_cam_clustering = Multi_cam_clustering_local(
-        test_track_results_folder=test_track_results_folder,
-        train_track_results_folder=train_track_results_dataframes,
-        work_dirs=work_dirs,
-        test_dataset_folder=test_dataset_folder,
-        train_dataset_folder=train_dataset_dataframes,
-        person_identifier=person_identifier,
-        config_basename=config_basename,
-        cam_count=cam_count,
-        chunk_id=0
-    )
+    multi_cam_clustering = Multi_cam_clustering_local(test_track_results_folder=test_track_results_folder,
+                                                      train_track_results_folder=train_track_results_dataframes,
+                                                      test_dataset_folder=test_dataset_folder,
+                                                      train_dataset_folder=train_dataset_dataframes,
+                                                      work_dirs=work_dirs, cam_no=cam_count,
+                                                      person_identifier=person_identifier,
+                                                      config_basename=config_basename, chunk_id=0)
 
     multi_cam_clustering.find_weights(weight_search_configs=weight_search_configs
                                       ,dist_name_to_distance_weights=dist_name_to_distance_weights)
@@ -1392,7 +1384,7 @@ def splitted_clustering_from_weights_local(test_track_results_folder
                                      , test_dataset_folder
                                      , train_dataset_folder
                                      , mc_cfg
-                                     , cam_count
+                                     , cam_no
                                      , best_weights_path
                                      , default_weights
                                      , config_basename
@@ -1453,18 +1445,6 @@ def splitted_clustering_from_weights_local(test_track_results_folder
     #
     #     return path
 
-    def get_async_tracking_results(eval_results):
-
-        tracking_results = []
-        for result in eval_results:
-
-            if isinstance(result, multiprocessing.pool.AsyncResult):
-                result = result.get()
-
-            tracking_results.append(result)
-
-        return tracking_results
-
     # def combine_tracking_results(eval_results):
     #
     #     tracking_results = pd.DataFrame()
@@ -1508,10 +1488,23 @@ def splitted_clustering_from_weights_local(test_track_results_folder
     #     single_cam_eval_dataframe.to_csv(single_cam_chunks_evaluation_path, index=False)
 
 
-    # TODO [local 2] try to eliminate the cam_count and upload only one trunk. Here we ignore.
+    # TODO [local 3] Is it a situation that multi-trunk will be processed?
+    def get_async_tracking_results(eval_results):
+
+        tracking_results = []
+        for result in eval_results:
+
+            if isinstance(result, multiprocessing.pool.AsyncResult):
+                result = result.get()
+
+            tracking_results.append(result)
+
+        return tracking_results
+
+    # [local 2] ONLY work for single cam no.
     chunk_id_to_gt_chunks, chunk_id_to_tr_chunks = split_data(dataset_folder=test_dataset_folder
                                                               , track_results_folder=test_track_results_folder
-                                                              , cam_ids=list(range(cam_count))
+                                                              , cam_ids=[cam_no]
                                                               , working_dir=work_dirs
                                                               , n_split_parts=n_split_parts)
 
@@ -1522,8 +1515,9 @@ def splitted_clustering_from_weights_local(test_track_results_folder
     # chunk_id_to_tr_chunks: list of dataframe in workdir/tracker/tracker_results
     pool = NonDeamonicPool(processes=11)
     eval_results = []
+    # [local 2] though the loop used. It should be only one item. TODO [final] do a length check?
     for chunk_id, test_chunk_gt in chunk_id_to_gt_chunks.items():  # trackers' result
-        test_chunk_tr = chunk_id_to_tr_chunks[chunk_id]
+        test_chunk_tr = chunk_id_to_tr_chunks[chunk_id]  # should always take 0
 
         cluster_from_weights_task_args = (
             test_chunk_tr,
@@ -1537,17 +1531,13 @@ def splitted_clustering_from_weights_local(test_track_results_folder
             "test",
             config_basename,
             chunk_id,
-            cam_count
+            cam_no
         )
-        # pickled_appearance_features TODO [local 2] delete some loops make it work only for one cam
-        pickle_all_reid_features(work_dirs=work_dirs
-                                 , mc_cfg=mc_cfg
-                                 , track_results_folder=test_chunk_tr
-                                 , dataset_folder=test_dataset_folder
-                                 , config_basename=config_basename
-                                 , dataset_type="test"
-                                 , cam_count=cam_count
-                                 , feature_extraction=feature_extraction)
+        # pickled_appearance_features
+        # [local 2] delete some loops make it work only for one cam
+        pickle_all_reid_features(work_dirs=work_dirs, mc_cfg=mc_cfg, track_results_folder=test_chunk_tr,
+                                 dataset_folder=test_dataset_folder, config_basename=config_basename,
+                                 dataset_type="test", cam_no=cam_no, feature_extraction=feature_extraction)
 
 
         #evaluation_result = cluster_from_weights_task(*cluster_from_weights_task_args)
@@ -1581,26 +1571,19 @@ def cluster_from_weights_task_local(
         dataset_type,
         config_basename,
         chunk_id,
-        cam_count):
+        cam_no):
     tracking_results = None
     try:
         print("Started clustering Task")
         # TODO [local and server] CORE: split this class into local and server.
-        track_clustering = Multi_cam_clustering_local(
-            test_track_results_folder=test_track_results_folder,
-            train_track_results_folder=train_track_results_folder,
-            work_dirs=work_dirs,
-            test_dataset_folder=test_dataset_folder,
-            train_dataset_folder=train_dataset_folder,
-            person_identifier=person_identifier,
-            config_basename=config_basename,
-            cam_count=cam_count,
-            chunk_id=chunk_id
-        )
+        track_clustering = Multi_cam_clustering_local(test_track_results_folder=test_track_results_folder,
+                                                      train_track_results_folder=train_track_results_folder,
+                                                      test_dataset_folder=test_dataset_folder,
+                                                      train_dataset_folder=train_dataset_folder, work_dirs=work_dirs,
+                                                      cam_no=cam_no, person_identifier=person_identifier,
+                                                      config_basename=config_basename, chunk_id=chunk_id)
         # [local] this is only used to prepare info and upload
-        track_clustering.cluster_from_weights(best_weights_path=best_weights_path
-                                                 , default_weights=default_weights
-                                                 , dataset_type=dataset_type)
+        track_clustering.cluster_from_weights(dataset_type=dataset_type)
         # Following is needed in server.
         # tracking_results["multi_cam_eval_summary"]["chunk_id"] = chunk_id
         # tracking_results["single_cam_eval_summary"]["chunk_id"] = chunk_id

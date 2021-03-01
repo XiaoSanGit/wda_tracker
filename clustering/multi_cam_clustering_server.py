@@ -27,7 +27,8 @@ import multiprocessing
 
 from evaluation.motmetrics_evaluation import calculate_single_cam_mean_and_std
 from evaluation.multicam_evaluation import split_data
-
+import glob
+# use new lib glob
 eval_flag =False
 def get_feature_pickle_folder(work_dirs, config_basename, dataset_type):
     feature_pickle_folder = os.path.join(work_dirs
@@ -183,7 +184,7 @@ class Multi_cam_clustering_server:
         self.chunk_id = chunk_id
         self.should_save_track_results = True
 
-    def get_person_id_tracks_pickle_path(self,config_basename, dataset_type):
+    def get_person_id_tracks_pickle_paths(self,config_basename, dataset_type):
 
 
         person_id_tracks_pickle_folder = os.path.join(self.work_dirs
@@ -193,12 +194,15 @@ class Multi_cam_clustering_server:
                                                       , "person_id_tracks"
                                                       , "chunk_{}".format(self.chunk_id)
                                                       , dataset_type)
-
+        # [server 2] Now there should be person_id_tracks_cam_0
         os.makedirs(person_id_tracks_pickle_folder,exist_ok=True)
+        person_id_tracks_pickle_paths = []
+        file_list = glob.glob(osp.join(person_id_tracks_pickle_folder,"person_id_tracks_cam_*.pkl"))
+        file_list.sort(key = lambda x: int(x.split("_")[-1][:-4]))
+        for file_name in file_list:
+            person_id_tracks_pickle_paths.append(osp.join(person_id_tracks_pickle_folder,file_name))
 
-        person_id_tracks_pickle_path = osp.join(person_id_tracks_pickle_folder,"person_id_tracks.pkl")
-
-        return person_id_tracks_pickle_path
+        return person_id_tracks_pickle_paths
 
 
     def load_person_id_tracks(self,track_results_folder):
@@ -219,17 +223,18 @@ class Multi_cam_clustering_server:
 
     def get_all_tracks_with_feature_mean(self,track_results_folder,dataset_type):
         # [server] this is server version.
-        get_person_id_tracks_pickle_path = self.get_person_id_tracks_pickle_path(self.config_basename,dataset_type)
+        get_person_id_tracks_pickle_paths = self.get_person_id_tracks_pickle_paths(self.config_basename, dataset_type)
         # [personID,camID,track,feature_mean(mean all person feature per cam per frame)]
-        if os.path.exists(get_person_id_tracks_pickle_path):
-            print("Found pickled person_id_tracks")
-            print(get_person_id_tracks_pickle_path)
-            with open(get_person_id_tracks_pickle_path, 'rb') as handle:
-                self.person_id_tracks = pickle.load(handle)
-
+        if get_person_id_tracks_pickle_paths:
+            print("Found pickled {} person_id_tracks".format(len(get_person_id_tracks_pickle_paths)))
+            print(get_person_id_tracks_pickle_paths)
+            self.person_id_tracks = []
+            for filepath in get_person_id_tracks_pickle_paths:
+                with open(filepath, 'rb') as handle:
+                    self.person_id_tracks += pickle.load(handle)
             return
 
-        # TODO [server2] Since there should be no data on server. Should rise a error. Here just print.
+        # TODO [server3] Since there should be no data on server. Should rise a error. Here just print.
         # self.load_person_id_tracks(track_results_folder)
         else:
             print("Did not find pickled person_id_tracks. Calculating them now.")
@@ -377,20 +382,26 @@ class Multi_cam_clustering_server:
                                   , "chunk_{}".format(self.chunk_id)
                                   , dataset_type)
             os.makedirs(folder, exist_ok=True)
-            path1 = os.path.join(folder, "velocity_stats.pkl")
-            path2 = os.path.join(folder,"velocity_summary.pkl")
-            return path1,path2
-        # [server] Take two path,
-        pickle_path, summ_path = get_velocity_stats_pickle_path_server(dataset_type=dataset_type)
-        vc = Velocity_calculation(track_results_folder=track_results_folder
-                                  ,cam_ids=list(range(self.cam_count))
-                                  ,pickle_path=pickle_path)
+            # TODO [final] this static file will not occur when everything finished? Or calculate with an internal?
+            path = os.path.join(folder, "velocity_stats.pkl")
 
+            summ_paths = []
+            file_list = glob.glob(osp.join(folder,"velocity_summary_cam_*.pkl"))
+            file_list.sort(key = lambda x: int(x.split("_")[-1][:-4]))
+            for file_name in file_list:
+                summ_paths.append(osp.join(folder,file_name))
+            return path,summ_paths
+        # [server]
+        pickle_path, summ_paths = get_velocity_stats_pickle_path_server(dataset_type=dataset_type)
+        # TODO [server 3] The cam_count should not be fixed.
+        if len(summ_paths) == self.cam_count:
+            vc = Velocity_calculation(track_results_folder=track_results_folder
+                                      ,cam_ids=list(range(self.cam_count))
+                                      ,pickle_path=pickle_path)
+            velocity_stats = vc.get_velocity_stats_from_summ(summ_paths)
+            velocity_mean = velocity_stats["velocity_mean"]
 
-        velocity_stats = vc.get_velocity_stats_from_summ(summ_path)
-        velocity_mean = velocity_stats["velocity_mean"]
-
-        self.maximum_link_pred_distance = velocity_mean * maximum_link_frames
+            self.maximum_link_pred_distance = velocity_mean * maximum_link_frames
 
 
     def get_camera_transition_constraint(self, track1, track2, transitions_threshold=1):
@@ -780,15 +791,21 @@ class Multi_cam_clustering_server:
                                   , "chunk_{}".format(self.chunk_id)
                                   , dataset_type)
             os.makedirs(folder, exist_ok=True)
-            # TODO [server 2] extend this to multi-file version
-            single_cam_constraint_path = osp.join(folder, "single_cam_constraint_distance.pkl")
-            with open(single_cam_constraint_path, "rb") as s:
-                single_cam_constraint = pickle.load(s)
 
-            return single_cam_constraint
+            # [server 2] extend to multi-file version, now it is saved as numpy array
+            single_cam_constraints = {}
+            item_num_per_cam = []  # shitcode. Used as index flag
+            file_list = glob.glob(osp.join(folder,"cam_*_constraint_distance.pkl"))
+            file_list.sort(key=lambda x: int(osp.basename(x).split("_")[1]))
+            for file_path in file_list:
+                cam_no = int(osp.basename(file_path).split("_")[1])
+                with open(file_path, "rb") as s:
+                    single_cam_constraints[cam_no] = pickle.load(s)
+                item_num_per_cam.append(len(single_cam_constraints[cam_no]))
+            return single_cam_constraints,item_num_per_cam
 
         pickle_path = get_distances_and_indices_path()
-        single_cam_constraint = get_single_cam_constraint()
+        single_cam_constraints, item_num_per_cam = get_single_cam_constraint()
 
         if distance_cache_active and os.path.exists(pickle_path):
             print("Found distances_and_indices.")
@@ -796,7 +813,8 @@ class Multi_cam_clustering_server:
             with open(pickle_path, "rb") as pickle_file:
                 distances_and_indices = pickle.load(pickle_file)
         else:
-            distances_and_indices = get_distances_and_indices_server(dataset, single_cam_constraint, self.calculate_track_distances_server)
+            distances_and_indices = get_distances_and_indices_server(dataset, single_cam_constraints, item_num_per_cam,
+                                                                     self.calculate_track_distances_server)
 
             if distance_cache_active:
                 print("Writing pickled distances_and_indices.")
@@ -829,7 +847,7 @@ class Multi_cam_clustering_server:
         # TODO [server 3] following two have the same problem.
         self.initialize_overlapping_area_tester()  # calculate the overlap. Use all detection info seems
         self.initialize_cam_homographies()  # calculate the overlap. Use all detection info seems. Share time-suming part with overlapping
-        # TODO [server 2] take the velocity summary and calculate
+        # [server 2] take the velocity summary and calculate
         self.initialize_maximum_link_predict_distance(track_results_folder=track_results_folder
                                                       ,dataset_type=dataset_type)
 
@@ -838,8 +856,8 @@ class Multi_cam_clustering_server:
         tracks_all_persons = self.person_id_tracks
 
         #tracks_all_persons = tracks_all_persons[-100:] #For faster debugging
-        # TODO [local and server 2] here init final track NO locally and re-arrange the NO on
-        self.assign_track_unclustered_no(tracks_all_persons) # TODO here init final track NO.
+        # [server 2] here init final track NO locally and re-arrange the NO on
+        self.assign_track_unclustered_no(tracks_all_persons)
 
         current_clusters = set([(track_idx,) for track_idx,_ in enumerate(tracks_all_persons)])
         old_clusters = []
@@ -1123,7 +1141,7 @@ class Multi_cam_clustering_server:
                                                                          threshold=1)
 
         if eval_flag:
-            # TODO [server] this eval part can be closed in inference. Now I use a flag to close
+            # TODO [server 3] this eval part can be closed in inference. Now I use a flag to close
             self.logger.info("Starting single cam evaluation chunk_{}.".format(self.chunk_id))
 
             # following is the eval. So do not change
@@ -1337,8 +1355,8 @@ def splitted_clustering_from_weights_server(test_track_results_folder
 
     # Come to this func. We should have files in
     # /person_id_tracks /single_cam_constraints /velocity_stats
-    # TODO [server] Now we only consider that we can run it in two file.
-
+    # TODO [server 3] Now we consider that we can run it in two file in one PC
+    #               We really need this func? need to check
     chunk_id_to_gt_chunks, chunk_id_to_tr_chunks = split_data(dataset_folder=test_dataset_folder
                                                               , track_results_folder=test_track_results_folder
                                                               , cam_ids=list(range(cam_count))

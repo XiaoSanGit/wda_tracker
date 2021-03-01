@@ -87,19 +87,20 @@ class Run_multi_cam_clustering:
                                                        , n_split_parts=self.cfg.cluster_from_weights.split_count
                                                        )
             else:
-                splitted_clustering_from_weights_local(test_track_results_folder=self.cfg.test_track_results_folder
-                                                 , train_track_results_folder=self.cfg.train_track_results_folder
-                                                 , work_dirs=self.cfg.work_dirs
-                                                 , test_dataset_folder=self.cfg.test_dataset_folder
-                                                 , train_dataset_folder=self.cfg.train_dataset_folder
-                                                 , mc_cfg=self.cfg
-                                                 , cam_count=self.cfg.cam_count
-                                                 , best_weights_path=self.cfg.cluster_from_weights.best_weights_path
-                                                 , default_weights=self.cfg.cluster_from_weights.default_weights
-                                                 , config_basename=self.cfg.config_basename
-                                                 , person_identifier="person_id"
-                                                 , n_split_parts=self.cfg.cluster_from_weights.split_count
-                                                 )
+                # TODO [local 2] add cam_no. Make one process ONLY for single cam.
+                for cam_no in range(self.cfg.cam_count):
+                    splitted_clustering_from_weights_local(test_track_results_folder=self.cfg.test_track_results_folder,
+                                                           train_track_results_folder=self.cfg.train_track_results_folder,
+                                                           work_dirs=self.cfg.work_dirs,
+                                                           test_dataset_folder=self.cfg.test_dataset_folder,
+                                                           train_dataset_folder=self.cfg.train_dataset_folder,
+                                                           mc_cfg=self.cfg,
+                                                           cam_no=cam_no,  # [local 2] use cam_no instead count
+                                                           best_weights_path=self.cfg.cluster_from_weights.best_weights_path,
+                                                           default_weights=self.cfg.cluster_from_weights.default_weights,
+                                                           config_basename=self.cfg.config_basename,
+                                                           person_identifier="person_id",
+                                                           n_split_parts=self.cfg.cluster_from_weights.split_count)
 
 
 

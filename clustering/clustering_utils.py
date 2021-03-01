@@ -78,15 +78,37 @@ def get_distances_and_indices(dataset,calculate_track_distances):
 
     return result
 
-def get_distances_and_indices_server(dataset,single_cam_constraint,calculate_track_distances):
+def get_distances_and_indices_server(dataset,single_cam_constraints, item_num_per_cam, calculate_track_distances):
+    def judge_num_location(num, Alist):
+        # TODO [final] refine this shit code
+        cnt = 0
+        for item in Alist:
+            if num>=item:
+                cnt+=item
+            else:
+                return cnt
+
     print("Calculating pairwise distances")
     result = []
     dataset_size = len(dataset)
     cnt = 0
     for i in tqdm(range(dataset_size - 1)):  # ignore last i
         for j in range(i + 1, dataset_size):  # ignore duplication
-            # TODO [server2] try to solve multi-file input
-            distances = calculate_track_distances([i], [j], dataset, single_cam_constraint[i][0]['are_tracks_cam_id_frame_disjunct'])
+            # [server2] try to solve multi-file input
+            #  If the (i,j) locate in an area from single cam. Then can directly query otherwise give 0
+            #  Need to get the length first
+            distance_read = 0
+            # TODO [urgent] Test the speed.
+            # TODO [final] refine this shit code
+            if judge_num_location(i,item_num_per_cam) == judge_num_location(j,item_num_per_cam):
+                shift = 0
+                for idx,item in enumerate(item_num_per_cam):
+                    if i >= item:
+                        shift += item
+                    else:
+                        distance_read = single_cam_constraints[idx][i+shift,j+shift]
+                        break
+            distances = calculate_track_distances([i], [j], dataset, distance_read)
             # duplicate dist, need to be remove, and there is no difference to use tuple only
             # leave second dist here is to take up a position for tie selection
 

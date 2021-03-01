@@ -11,19 +11,19 @@ class Velocity_calculation:
     def __init__(self,track_results_folder,cam_ids,pickle_path):
 
         self.track_results_folder = track_results_folder
-        self.cam_ids = cam_ids
+        self.cam_ids = cam_ids  # For local, should be a list with single element
         self.pickle_path = pickle_path
 
 
     def get_cam_id_to_tracks(self):
 
         cam_id_to_tracks = {}
-        for cam_id in self.cam_ids:
+        for idx, cam_id in enumerate(self.cam_ids):
 
             if isinstance(self.track_results_folder,str):
                 track_results = os.path.join(self.track_results_folder,"track_results_{}.txt".format(cam_id))
             else:
-                track_results = self.track_results_folder[cam_id]
+                track_results = self.track_results_folder[idx] # [local 2] slightly modify.
 
 
 
@@ -64,9 +64,7 @@ class Velocity_calculation:
 
         return velocity_stats
 
-    def get_velocity_stats_from_summ(self,summ_path):
-
-
+    def get_velocity_stats_from_summ(self,summ_paths):
         if os.path.exists(self.pickle_path):
             print("Found velocity stats pickle path.")
             print(self.pickle_path)
@@ -74,9 +72,11 @@ class Velocity_calculation:
                 velocity_stats = pickle.load(pickle_file)
                 print(velocity_stats)
         else:
-            with open(summ_path, "rb") as summ:
-                velocities = pickle.load(summ)['velocity_summ']
-            # TODO [server 2] single file now. But in real world
+            velocities = []
+            for summ_path in summ_paths:
+                with open(summ_path, "rb") as summ:
+                    velocities += pickle.load(summ)['velocity_summ']
+            # [server 2] merge multi-file
             velocity_mean = np.mean(velocities)
             velocity_std = np.std(velocities)
 
@@ -119,7 +119,7 @@ class Velocity_calculation:
 
 
         velocities = []
-
+        # TODO [final] improve this. On local, only one item.
         for cam_id, person_id_to_track in cam_id_to_tracks.items():
             for person_id, track in person_id_to_track.items():
                 person_velocities = []
